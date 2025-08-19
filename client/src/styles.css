@@ -1,0 +1,19 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.toolbar {
+  padding: 8px;
+  background: #fafafa;
+  border-bottom: 1px solid #eee;
+}
+.toolbar button {
+  margin-right: 8px;
+}
