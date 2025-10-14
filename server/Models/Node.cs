@@ -17,16 +17,11 @@ namespace PixieVisio.Server.Models
 
         public string Text { get; set; } = string.Empty;
 
+        public string Color { get; set; } = "#f4f4f4";
+
         public static double CalculateMaxNodes()
         {
-            if (true)
-            {
-                return 1;
-            }
-            else
-            {
-                return 0;
-            }
+            return 1;
         }
     }
 }

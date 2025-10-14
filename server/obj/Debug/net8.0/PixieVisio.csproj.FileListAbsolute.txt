@@ -36,8 +36,6 @@ C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Microsoft.
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.dll
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Microsoft.Extensions.DependencyModel.dll
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Mono.TextTemplating.dll
-C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Npgsql.dll
-C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\System.CodeDom.dll
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\System.Composition.AttributedModel.dll
 C:\Users\kschw\Desktop\Coding\Test\PixieVisio\server\bin\Debug\net8.0\System.Composition.Convention.dll
