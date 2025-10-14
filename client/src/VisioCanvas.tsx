@@ -25,7 +25,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formText, setFormText] = useState('');
 
-  // helper to export current state
   function exportNodes(): NodeState[] {
     return nodesRef.current.map(n => ({
       id: n.id,
@@ -35,7 +34,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     }));
   }
 
-  // save to backend with modelId
   async function saveToServer(modelId = 'default') {
     try {
       const nodes = exportNodes();
@@ -51,7 +49,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     }
   }
 
-  // debounced trigger to avoid flooding saves during dragging
   function triggerSaveDebounced(delay = 400) {
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
@@ -60,7 +57,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     }, delay);
   }
 
-  // load from backend; returns true if loaded nodes exist
   async function loadFromServer(modelId = 'default'): Promise<boolean> {
     try {
       const res = await fetch(`http://localhost:5000/api/load?modelId=${encodeURIComponent(modelId)}`);
@@ -69,11 +65,9 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
       const nodes: NodeState[] = body?.nodes ?? [];
       if (!nodes || nodes.length === 0) return false;
 
-      // clear existing nodes
       for (const n of nodesRef.current) appRef.current?.stage.removeChild(n.gfx);
       nodesRef.current = [];
 
-      // recreate nodes from server state preserving IDs
       for (const s of nodes) {
         addNodeAt(s.x, s.y, s.text, undefined, undefined, s.id);
       }
@@ -94,12 +88,10 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   }));
 
   useEffect(() => {
-    // robust initialization: guard against missing DOM or PIXI errors
     const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
 
     try {
       if (!containerRef.current) {
-        // container not yet mounted — schedule init on next frame
         const t = requestAnimationFrame(() => initPixi());
         return () => cancelAnimationFrame(t);
       }
@@ -119,21 +111,17 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           resolution: dpr
         });
         appRef.current = app;
-        // append view safely
         if (containerRef.current && app.view) containerRef.current.appendChild(app.view as HTMLCanvasElement);
 
         linesRef.current = new PIXI.Graphics();
         app.stage.addChild(linesRef.current);
 
-        // Try to load from server first, fallback to defaults if none
         (async () => {
           const loaded = await loadFromServer();
           if (!loaded) {
-            // create defaults and persist them immediately
             addNodeAt(50, 50, 'Control server');
             addNodeAt(300, 50, 'Engineering station');
             addNodeAt(50, 180, 'PLC');
-            // ensure persisted
             await saveToServer().catch(() => {});
           }
         })();
@@ -151,7 +139,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
       } catch {}
       appRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function drawLines() {
@@ -202,7 +189,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
       dragging = false;
       data = null;
       container.cursor = 'grab';
-      // debounce save
       triggerSaveDebounced();
     };
 
@@ -217,15 +203,13 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     triggerSaveDebounced();
   }
 
-  // helper: aktualisiert Outline (türkis wenn ausgewählt)
   function refreshSelectionStyles(selId: string | null) {
-    const SELECT_COLOR = 0x1abc9c; // türkises Highlight
+    const SELECT_COLOR = 0x1abc9c;
     const DEFAULT_COLOR = 0x333333;
     const SELECT_WIDTH = 3;
     const DEFAULT_WIDTH = 2;
 
     for (const n of nodesRef.current) {
-      // redraw rect outline while preserving fill
       const fill = n.style.fill;
       n.rect.clear();
       n.rect.beginFill(fill);
@@ -245,9 +229,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     const n = nodesRef.current.find(x => x.id === id);
     if (!n) return;
     setFormText(n.textObj.text);
-    // bring to front
     appRef.current?.stage.addChild(n.gfx);
-    // visual update
     refreshSelectionStyles(id);
   }
 
@@ -257,7 +239,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     if (!n) return;
     n.textObj.text = formText;
     n.textObj.y = (DEFAULT_BOX.h - n.textObj.height) / 2;
-    // ensure outline stays correct after label changes
     refreshSelectionStyles(selectedId);
   }
 
@@ -273,7 +254,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     triggerSaveDebounced();
   }
 
-  // update addNodeAt signature to accept optional id
   function addNodeAt(x: number, y: number, label = '', fill = 0xf4f4f4, textColor = 0x111111, providedId?: string) {
     const app = appRef.current!;
     const box = new PIXI.Container();
@@ -308,7 +288,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           if (newLabel !== null) {
             entry.textObj.text = newLabel;
             if (selectedId === entry.id) setFormText(newLabel);
-            // after label change ensure server has update
             saveToServer().catch(() => {});
           }
         }
@@ -318,15 +297,12 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     });
 
     app.stage.addChild(box);
-    // use provided id or generate one
     const id = providedId ?? `n-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     nodesRef.current.push({ id, gfx: box, rect, textObj: text, style: { fill, textColor } });
 
-    // keep outlines consistent (new node gets default outline)
     refreshSelectionStyles(selectedId);
   }
 
-  // Render: if init error show message so page is not blank
   if (initError) {
     return (
       <div style={{ display: 'flex', height: '80vh', gap: 12 }}>

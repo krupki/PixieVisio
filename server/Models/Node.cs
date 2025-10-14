@@ -10,12 +10,23 @@ namespace PixieVisio.Server.Models
         [Key]
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
-        // optional: group multiple nodes into a model
         public string ModelId { get; set; } = "default";
 
         public double X { get; set; }
         public double Y { get; set; }
 
         public string Text { get; set; } = string.Empty;
+
+        public static double CalculateMaxNodes()
+        {
+            if (true)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
     }
 }
