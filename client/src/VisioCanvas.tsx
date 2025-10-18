@@ -302,7 +302,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           autoDensity: true,
           resolution: effectiveDpr,
           powerPreference: 'high-performance',
-          preserveDrawingBuffer: false
+          preserveDrawingBuffer: false,
+          forceCanvas: false
         });
         appRef.current = app;
         if (containerRef.current && app.view) containerRef.current.appendChild(app.view as HTMLCanvasElement);
@@ -725,11 +726,9 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     const canvasWidth = app.screen.width;
     const canvasHeight = app.screen.height;
 
-    // Transformiere Node-Koordinaten in Canvas-Koordinaten
     const nodeCanvasX = x * zoom + offsetX;
     const nodeCanvasY = y * zoom + offsetY;
 
-    // Prüfe, ob Node im sichtbaren Bereich liegt
     return (
       nodeCanvasX + DEFAULT_BOX.w * zoom > 0 &&
       nodeCanvasX < canvasWidth &&
@@ -1003,6 +1002,5 @@ function createNodeTexture(label: string, fill: number, textColor: number, app: 
   text.y = (DEFAULT_BOX.h - text.height) / 2;
   gfx.addChild(text);
 
-  // Texture aus Graphics generieren
   return app.renderer.generateTexture(gfx);
 }
