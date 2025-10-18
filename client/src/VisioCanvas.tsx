@@ -718,6 +718,26 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     refreshSelectionStyles(selectedId);
   }
 
+  function isNodeVisible(x: number, y: number, stage: PIXI.Container, app: PIXI.Application) {
+    const zoom = stage.scale.x;
+    const offsetX = stage.x;
+    const offsetY = stage.y;
+    const canvasWidth = app.screen.width;
+    const canvasHeight = app.screen.height;
+
+    // Transformiere Node-Koordinaten in Canvas-Koordinaten
+    const nodeCanvasX = x * zoom + offsetX;
+    const nodeCanvasY = y * zoom + offsetY;
+
+    // Prüfe, ob Node im sichtbaren Bereich liegt
+    return (
+      nodeCanvasX + DEFAULT_BOX.w * zoom > 0 &&
+      nodeCanvasX < canvasWidth &&
+      nodeCanvasY + DEFAULT_BOX.h * zoom > 0 &&
+      nodeCanvasY < canvasHeight
+    );
+  }
+
   if (initError) {
     return (
       <div style={{ display: 'flex', height: '80vh', gap: 12 }}>
@@ -966,3 +986,23 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 });
 
 export default VisioCanvas;
+
+function createNodeTexture(label: string, fill: number, textColor: number, app: PIXI.Application): PIXI.Texture {
+  const gfx = new PIXI.Graphics();
+  gfx.beginFill(fill);
+  gfx.lineStyle(2, 0x333333);
+  gfx.drawRoundedRect(0, 0, DEFAULT_BOX.w, DEFAULT_BOX.h, DEFAULT_BOX.radius);
+  gfx.endFill();
+
+  const text = new PIXI.Text(label, {
+    fill: textColor,
+    fontSize: 18,
+    fontWeight: '600'
+  });
+  text.x = 20;
+  text.y = (DEFAULT_BOX.h - text.height) / 2;
+  gfx.addChild(text);
+
+  // Texture aus Graphics generieren
+  return app.renderer.generateTexture(gfx);
+}
