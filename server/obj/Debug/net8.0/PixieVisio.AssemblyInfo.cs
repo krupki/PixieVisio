@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PixieVisio")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f64b513a98f5abe3cea04e52466b5856a1f4c242")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a1d8f2d55248e6a55d71f8309d3d78034e84adf")]
 [assembly: System.Reflection.AssemblyProductAttribute("PixieVisio")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PixieVisio")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

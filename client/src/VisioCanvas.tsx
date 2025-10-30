@@ -383,6 +383,11 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           }
         } catch {}
 
+       if (saveTimerRef.current) {
+         window.clearTimeout(saveTimerRef.current);
+         saveTimerRef.current = null;
+       }
+
         appRef.current?.destroy(true, { children: true });
       } catch {}
       appRef.current = null;
@@ -431,8 +436,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     
     g.eventMode = 'static';
     g.cursor = 'default';
-    g.hitArea = new PIXI.Rectangle(0, 0, appRef.current?.screen.width || 800, appRef.current?.screen.height || 600);
-    
+    g.hitArea = new PIXI.Rectangle(-100000, -100000, 200000, 200000);
+
     g.on('pointerdown', (ev: PIXI.FederatedPointerEvent) => {
       const pos = ev.data.getLocalPosition(g);
       
@@ -497,17 +502,49 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     container.cursor = 'grab';
 
     let dragging = false;
-    let data: PIXI.FederatedPointerEvent | null = null;
     let offset = { x: 0, y: 0 };
+
+    const onGlobalPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const canvas = appRef.current?.view as HTMLCanvasElement | undefined;
+      const stage = container.parent as PIXI.Container | undefined;
+      if (!canvas || !stage) return;
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const clientY = e.clientY - rect.top;
+
+      const localX = (clientX - stage.x) / stage.scale.x;
+      const localY = (clientY - stage.y) / stage.scale.y;
+
+      container.x = localX - offset.x;
+      container.y = localY - offset.y;
+      drawLines();
+    };
+
+    const onGlobalPointerUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      container.cursor = 'grab';
+      const canvas = appRef.current?.view as HTMLCanvasElement | undefined;
+      if (canvas) {
+        canvas.removeEventListener('pointermove', onGlobalPointerMove);
+        canvas.removeEventListener('pointerup', onGlobalPointerUp);
+        canvas.removeEventListener('pointercancel', onGlobalPointerUp);
+      }
+      window.removeEventListener('blur', onGlobalPointerUp);
+      drawLines();
+      triggerSaveDebounced();
+    };
+
     container.on('pointerdown', (ev: PIXI.FederatedPointerEvent) => {
       const entry = nodesRef.current.find(n => n.gfx === container);
       if (entry) {
         selectNode(entry.id);
-        
+
         if (ev.ctrlKey || ev.metaKey) {
           ev.preventDefault();
           ev.stopPropagation();
-          
+
           if (connectionModeRef.current.active && connectionModeRef.current.fromNodeId && connectionModeRef.current.fromNodeId !== entry.id) {
             addConnection(connectionModeRef.current.fromNodeId, entry.id);
             updateConnectionMode({ active: false });
@@ -519,7 +556,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
             const newConnectionMode = { active: true, fromNodeId: entry.id };
             updateConnectionMode(newConnectionMode);
             refreshSelectionStyles(selectedId, newConnectionMode);
-            
+
             nodesRef.current.forEach(n => {
               if (n.id === entry.id) {
                 n.gfx.cursor = 'crosshair';
@@ -530,7 +567,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           }
           return;
         }
-        
+
         if (connectionModeRef.current.active && connectionModeRef.current.fromNodeId && connectionModeRef.current.fromNodeId !== entry.id) {
           addConnection(connectionModeRef.current.fromNodeId, entry.id);
           updateConnectionMode({ active: false });
@@ -538,7 +575,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           refreshSelectionStyles(selectedId, { active: false });
           return;
         }
-        
+
         if (connectionModeRef.current.active && connectionModeRef.current.fromNodeId === entry.id) {
           updateConnectionMode({ active: false });
           nodesRef.current.forEach(n => n.gfx.cursor = 'grab');
@@ -549,30 +586,24 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 
       dragging = true;
       container.cursor = 'grabbing';
-      data = ev.data;
-      const pos = data.getLocalPosition(container.parent!);
+
+      const pos = ev.data.getLocalPosition(container.parent!);
       offset.x = pos.x - container.x;
       offset.y = pos.y - container.y;
+
+      const canvas = appRef.current?.view as HTMLCanvasElement | undefined;
+      if (canvas) {
+        canvas.addEventListener('pointermove', onGlobalPointerMove);
+        canvas.addEventListener('pointerup', onGlobalPointerUp);
+        canvas.addEventListener('pointercancel', onGlobalPointerUp);
+      }
+      window.addEventListener('blur', onGlobalPointerUp);
     });
 
-    container.on('pointermove', () => {
-      if (!dragging || !data) return;
-      const pos = data.getLocalPosition(container.parent!);
-      container.x = pos.x - offset.x;
-      container.y = pos.y - offset.y;
-      drawLines();
-    });
+  const stop = () => onGlobalPointerUp();
 
-    const stop = () => {
-      dragging = false;
-      data = null;
-      container.cursor = 'grab';
-      drawLines();
-      triggerSaveDebounced();
-    };
-
-    container.on('pointerup', stop);
-    container.on('pointerupoutside', stop);
+  container.on('pointerup', stop);
+  container.on('pointerupoutside', stop);
   }
 
   let counter = 0;
