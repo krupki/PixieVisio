@@ -23,6 +23,9 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   const connectionsRef = useRef<ConnectionState[]>([]);
   const linesRef = useRef<PIXI.Graphics | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsState, setWsState] = useState<'closed' | 'connecting' | 'open'>('closed');
+  const docIdRef = useRef('default');
   const [initError, setInitError] = useState<string | null>(null);
   const [connectionMode, setConnectionMode] = useState<{ active: boolean; fromNodeId?: string }>({ active: false });
   const connectionModeRef = useRef<{ active: boolean; fromNodeId?: string }>({ active: false });
@@ -55,6 +58,38 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     return connectionsRef.current;
   }
 
+  function connectRealtime() {
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+    setWsState('connecting');
+    try {
+      const ws = new WebSocket(`ws://localhost:8081/ws?docId=${encodeURIComponent(docIdRef.current)}&userId=frontend`);
+      wsRef.current = ws;
+      ws.onopen = () => setWsState('open');
+      ws.onclose = () => {
+        setWsState('closed');
+        wsRef.current = null;
+      };
+      ws.onerror = () => {
+        try { ws.close(); } catch {}
+      };
+    } catch {
+      setWsState('closed');
+    }
+  }
+
+  function sendRealtime(payload: any) {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify(payload));
+      } catch {
+        /* ignore send errors */
+      }
+    }
+  }
+
   async function saveToServer(modelId = 'default') {
     try {
       const nodes = exportNodes();
@@ -73,6 +108,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   function triggerSaveDebounced(delay = 400) {
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
+      const snapshot = { type: 'state', ts: Date.now(), nodes: exportNodes(), connections: exportConnections() };
+      sendRealtime(snapshot);
       saveToServer().catch(() => {});
       saveTimerRef.current = null;
     }, delay);
@@ -145,6 +182,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   }));
 
   useEffect(() => {
+    connectRealtime();
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         updateConnectionMode({ active: false });
@@ -154,7 +193,13 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch {}
+        wsRef.current = null;
+      }
+    };
   }, [selectedId]);
 
   useEffect(() => {

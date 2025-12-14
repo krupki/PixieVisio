@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import VisioCanvas, { VisioHandle } from './VisioCanvas';
+import ServiceStatus from './components/ServiceStatus';
 
 export default function App() {
   const visioRef = useRef<VisioHandle | null>(null);
@@ -19,6 +20,9 @@ export default function App() {
 
   return (
     <div className="app">
+      <div style={{ marginBottom: 16 }}>
+        <ServiceStatus />
+      </div>
       <div className="toolbar">
         <button onClick={() => visioRef.current?.addNode()}>Kästchen hinzufügen</button>
         <button onClick={save}>Speichern</button>
