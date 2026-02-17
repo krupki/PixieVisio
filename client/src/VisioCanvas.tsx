@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as PIXI from 'pixi.js';
 import { appConfig } from './config';
+import { ZoomIn, ZoomOut, Focus } from 'lucide-react';
 
 export type NodeState = { id: string; x: number; y: number; text: string; color?: string };
 export type ConnectionState = { id: string; fromNodeId: string; toNodeId: string; style?: string; color?: string; width?: number; label?: string };
@@ -878,28 +879,28 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
               style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
               title="Reinzoomen"
             >
-              🔍+
+              <ZoomIn />
             </button>
             <button
               onClick={zoomOut}
               style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
               title="Rauszoomen"
             >
-              🔍-
+              <ZoomOut />
             </button>
             <button
               onClick={resetZoom}
               style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
               title="Zoom zurücksetzen"
             >
-              🎯
+              <Focus />
             </button>
           </div>
           <div style={{ fontSize: 10, color: '#666' }}>
             Zoom: {Math.round(zoomLevel * 100)}%
           </div>
           <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>
-            💡 Mausrad zum Zoomen, Shift+Drag oder mittlere Maustaste zum Verschieben
+            Mausrad zum Zoomen, Shift+Drag oder mittlere Maustaste zum Verschieben
           </div>
         </div>
 
@@ -912,7 +913,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           {connectionMode.active && (
             <div style={{ marginBottom: 8, padding: 8, backgroundColor: '#e3f2fd', borderRadius: 4 }}>
               <div style={{ fontSize: 12, color: '#1976d2' }}>
-                🔗 Verbindungsmodus aktiv
+                Verbindungsmodus aktiv
               </div>
               <div style={{ fontSize: 11, color: '#666' }}>
                 Klicken Sie auf einen anderen Node oder ESC zum Abbrechen
@@ -972,7 +973,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           <div style={{ borderTop: '1px solid #eee', paddingTop: 8 }}>
             <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Verbindungen</div>
             <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>
-              <div>📖 Anleitung:</div>
+              <div>Anleitung:</div>
               <div>1. Strg/Cmd + Klick auf ersten Node (wird orange)</div>
               <div>2. Strg/Cmd + Klick auf zweiten Node</div>
               <div>3. Oder: Button "Verbindungsmodus" → 2x klicken</div>
@@ -1031,7 +1032,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
               {selectedConnection && (
                 <div style={{ marginTop: 6, padding: 6, backgroundColor: '#fff3cd', borderRadius: 3, border: '1px solid #ffeaa7' }}>
                   <div style={{ fontSize: 10, color: '#856404', marginBottom: 4 }}>
-                    🎯 Verbindung ausgewählt
+                    Verbindung ausgewählt
                   </div>
                   <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>
                     ID: {selectedConnection.substring(0, 12)}...
