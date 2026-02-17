@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { appConfig } from '../config';
 
 type State = 'pending' | 'ok' | 'error';
 
@@ -68,9 +69,9 @@ export default function ServiceStatus() {
     setStatuses(prev => prev.map(s => (s.id === 'frontend' ? s : { ...s, state: 'pending', detail: undefined, latencyMs: undefined })));
 
     const [backend, realtime, metricRes] = await Promise.all([
-      pingHttp('http://localhost:5000/api/load?modelId=default'),
-      pingHttp('http://localhost:8081/healthz'),
-      fetch('http://localhost:8081/metrics').then(r => r.ok ? r.json() : Promise.reject(new Error('metrics ' + r.status))).catch(err => ({ error: String(err) }))
+      pingHttp(`${appConfig.backendBaseUrl}/api/load?modelId=default`),
+      pingHttp(`${appConfig.realtimeBaseUrl}/healthz`),
+      fetch(`${appConfig.realtimeBaseUrl}/metrics`).then(r => r.ok ? r.json() : Promise.reject(new Error('metrics ' + r.status))).catch(err => ({ error: String(err) }))
     ]);
 
     setStatuses(prev => prev.map(s => {

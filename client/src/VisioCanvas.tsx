@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as PIXI from 'pixi.js';
+import { appConfig } from './config';
 
 export type NodeState = { id: string; x: number; y: number; text: string; color?: string };
 export type ConnectionState = { id: string; fromNodeId: string; toNodeId: string; style?: string; color?: string; width?: number; label?: string };
@@ -64,7 +65,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     }
     setWsState('connecting');
     try {
-      const ws = new WebSocket(`ws://localhost:8081/ws?docId=${encodeURIComponent(docIdRef.current)}&userId=frontend`);
+      const ws = new WebSocket(`${appConfig.realtimeWsBaseUrl}/ws?docId=${encodeURIComponent(docIdRef.current)}&userId=frontend`);
       wsRef.current = ws;
       ws.onopen = () => setWsState('open');
       ws.onclose = () => {
@@ -95,7 +96,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
       const nodes = exportNodes();
       const connections = exportConnections();
       
-      await fetch('http://localhost:5000/api/save', {
+      await fetch(`${appConfig.backendBaseUrl}/api/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ modelId, nodes, connections })
@@ -117,7 +118,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 
   async function loadFromServer(modelId = 'default'): Promise<boolean> {
     try {
-      const res = await fetch(`http://localhost:5000/api/load?modelId=${encodeURIComponent(modelId)}`);
+      const res = await fetch(`${appConfig.backendBaseUrl}/api/load?modelId=${encodeURIComponent(modelId)}`);
       if (!res.ok) return false;
       const body = await res.json();
       const nodes: NodeState[] = body?.nodes ?? [];
