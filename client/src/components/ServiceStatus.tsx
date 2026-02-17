@@ -47,7 +47,7 @@ async function pingHttp(url: string, timeoutMs = 3000): Promise<{ ok: boolean; l
 
 export default function ServiceStatus() {
   const [statuses, setStatuses] = useState<Status[]>(() => [
-    { id: 'frontend', label: 'Frontend (Vite)', state: 'ok', latencyMs: 0 },
+    { id: 'frontend', label: 'Frontend', state: 'ok', latencyMs: 0 },
     { id: 'backend', label: 'Backend API :5000', state: 'pending' },
     { id: 'realtime', label: 'Realtime WS :8081', state: 'pending' }
   ]);
@@ -114,26 +114,27 @@ export default function ServiceStatus() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <strong>Systemstatus</strong>
         <button onClick={runChecks} disabled={isRunning} style={{ padding: '4px 8px', cursor: 'pointer' }}>
-          {isRunning ? 'Prüfe...' : 'Jetzt prüfen'}
+          {isRunning ? 'checking...' : 'Check'}
         </button>
-        {lastChecked && (
-          <span style={{ fontSize: 12, color: '#6b7280' }}>
-            zuletzt: {lastChecked.toLocaleTimeString()}
-          </span>
-        )}
       </div>
 
-      <div style={{ display: 'flex', gap: 12 }}>
+      {lastChecked && (
+        <div style={{ fontSize: 12, color: '#6b7280' }}>
+          zuletzt: {lastChecked.toLocaleTimeString()}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {statuses.map(s => (
-          <div key={s.id} style={{ flex: 1, padding: 10, background: '#fff', borderRadius: 6, border: '1px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div key={s.id} style={{ width: '100%', padding: 8, background: '#fff', borderRadius: 6, border: '1px solid #e5e7eb', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ width: 10, height: 10, borderRadius: '999px', background: colors[s.state] }} />
-              <span>{s.label}</span>
+              <span style={{ fontWeight: 600 }}>{s.label}</span>
               {typeof s.latencyMs === 'number' && (
                 <span style={{ marginLeft: 'auto', fontSize: 12, color: '#6b7280' }}>{s.latencyMs} ms</span>
               )}
             </div>
-            <div style={{ fontSize: 12, color: '#6b7280', minHeight: 18 }}>
+            <div style={{ fontSize: 13, color: '#6b7280', minHeight: 18 }}>
               {s.state === 'pending' && 'Prüfe...'}
               {s.state === 'ok' && 'OK'}
               {s.state === 'error' && (s.detail || 'Fehler')}
@@ -174,23 +175,6 @@ export default function ServiceStatus() {
           </div>
         </div>
       )}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 10, background: '#fff', borderRadius: 6, border: '1px dashed #d1d5db' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 80, padding: 8, textAlign: 'center', borderRadius: 6, border: `2px solid ${diagramColor}`, color: '#111827' }}>
-            Frontend
-          </div>
-          <div style={{ fontSize: 14, color: '#6b7280' }}>requests</div>
-          <div style={{ width: 80, padding: 8, textAlign: 'center', borderRadius: 6, border: `2px solid ${statuses.find(s => s.id === 'backend')?.state === 'ok' ? '#22c55e' : '#ef4444'}` }}>
-            Backend
-          </div>
-          <div style={{ fontSize: 14, color: '#6b7280' }}>WS</div>
-          <div style={{ width: 80, padding: 8, textAlign: 'center', borderRadius: 6, border: `2px solid ${statuses.find(s => s.id === 'realtime')?.state === 'ok' ? '#22c55e' : '#ef4444'}` }}>
-            Realtime
-          </div>
-        </div>
-        <div style={{ fontSize: 12, color: '#6b7280' }}>grün = OK, gelb = prüfe, rot = Fehler</div>
-      </div>
     </div>
   );
 }
