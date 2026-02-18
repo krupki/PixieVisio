@@ -65,3 +65,34 @@ func TestWithCORSHandlesPreflight(t *testing.T) {
 		t.Fatalf("expected wildcard CORS origin header")
 	}
 }
+
+func TestParseAllowedOrigins(t *testing.T) {
+	allowed := parseAllowedOrigins("http://localhost:5173, https://example.com ,invalid,ftp://bad")
+
+	if len(allowed) != 2 {
+		t.Fatalf("expected 2 valid origins, got %d", len(allowed))
+	}
+	if _, ok := allowed["http://localhost:5173"]; !ok {
+		t.Fatalf("expected localhost origin to be parsed")
+	}
+	if _, ok := allowed["https://example.com"]; !ok {
+		t.Fatalf("expected example.com origin to be parsed")
+	}
+}
+
+func TestIsOriginAllowed(t *testing.T) {
+	allowed := parseAllowedOrigins("http://localhost:5173")
+
+	if !isOriginAllowed("http://localhost:5173", allowed) {
+		t.Fatalf("expected configured origin to be allowed")
+	}
+	if isOriginAllowed("https://localhost:5173", allowed) {
+		t.Fatalf("expected different scheme to be rejected")
+	}
+	if isOriginAllowed("http://evil.example", allowed) {
+		t.Fatalf("expected unknown origin to be rejected")
+	}
+	if isOriginAllowed("", allowed) {
+		t.Fatalf("expected empty origin to be rejected")
+	}
+}

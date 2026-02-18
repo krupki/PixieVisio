@@ -7,9 +7,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -213,18 +215,20 @@ func (h *hub) shutdown(ctx context.Context) {
 
 // Config holds runtime knobs.
 type Config struct {
-	Addr          string
-	BackendURL    string
-	FlushInterval time.Duration
-	MaxBatch      int
+	Addr           string
+	BackendURL     string
+	FlushInterval  time.Duration
+	MaxBatch       int
+	AllowedOrigins map[string]struct{}
 }
 
 func loadConfig() Config {
 	cfg := Config{
-		Addr:          ":8081",
-		BackendURL:    "http://localhost:5000/api/save",
-		FlushInterval: 75 * time.Millisecond,
-		MaxBatch:      64,
+		Addr:           ":8081",
+		BackendURL:     "http://localhost:5000/api/save",
+		FlushInterval:  75 * time.Millisecond,
+		MaxBatch:       64,
+		AllowedOrigins: parseAllowedOrigins("http://localhost:5173,http://127.0.0.1:5173"),
 	}
 
 	if v := os.Getenv("ADDR"); v != "" {
@@ -240,16 +244,55 @@ func loadConfig() Config {
 			cfg.MaxBatch = n
 		}
 	}
+	if v := os.Getenv("ALLOWED_ORIGINS"); v != "" {
+		parsed := parseAllowedOrigins(v)
+		if len(parsed) == 0 {
+			log.Printf("ALLOWED_ORIGINS is set but no valid origins were parsed; rejecting all browser origins")
+		}
+		cfg.AllowedOrigins = parsed
+	}
 	return cfg
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  4096,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		// TODO: tighten this based on your domains.
-		return true
-	},
+func parseAllowedOrigins(raw string) map[string]struct{} {
+	allowed := make(map[string]struct{})
+	for _, candidate := range strings.Split(raw, ",") {
+		candidate = strings.TrimSpace(candidate)
+		if candidate == "" {
+			continue
+		}
+		normalized, ok := normalizeOrigin(candidate)
+		if !ok {
+			log.Printf("ignoring invalid allowed origin %q", candidate)
+			continue
+		}
+		allowed[normalized] = struct{}{}
+	}
+	return allowed
+}
+
+func normalizeOrigin(origin string) (string, bool) {
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", false
+	}
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return "", false
+	}
+	return scheme + "://" + strings.ToLower(parsed.Host), true
+}
+
+func isOriginAllowed(origin string, allowed map[string]struct{}) bool {
+	if len(allowed) == 0 {
+		return false
+	}
+	normalized, ok := normalizeOrigin(origin)
+	if !ok {
+		return false
+	}
+	_, exists := allowed[normalized]
+	return exists
 }
 
 type metrics struct {
@@ -302,7 +345,20 @@ type perDocMetrics struct {
 	QueueDepth int    `json:"queueDepth"`
 }
 
-func websocketHandler(h *hub) http.HandlerFunc {
+func websocketHandler(h *hub, allowedOrigins map[string]struct{}) http.HandlerFunc {
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  4096,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if isOriginAllowed(origin, allowedOrigins) {
+				return true
+			}
+			log.Printf("rejected websocket origin=%q remote=%s", origin, r.RemoteAddr)
+			return false
+		},
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		docID := r.URL.Query().Get("docId")
 		if docID == "" {
@@ -385,7 +441,7 @@ func main() {
 	hub := newHub(flusher, cfg.FlushInterval, cfg.MaxBatch, m)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/ws", websocketHandler(hub))
+	mux.HandleFunc("/ws", websocketHandler(hub, cfg.AllowedOrigins))
 	mux.HandleFunc("/healthz", healthHandler)
 	mux.HandleFunc("/metrics", metricsHandler(m, hub))
 
