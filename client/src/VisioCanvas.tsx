@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import * as PIXI from 'pixi.js';
 import { appConfig } from './config';
-import { ZoomIn, ZoomOut, Focus } from 'lucide-react';
+import { ZoomIn, ZoomOut, Focus, CircleHelp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export type NodeState = { id: string; x: number; y: number; text: string; color?: string };
 export type ConnectionState = { id: string; fromNodeId: string; toNodeId: string; style?: string; color?: string; width?: number; label?: string };
@@ -14,7 +14,7 @@ export type VisioHandle = {
   addConnection: (fromNodeId: string, toNodeId: string) => void;
 };
 
-const DEFAULT_BOX = { w: 200, h: 60, radius: 8 };
+const DEFAULT_BOX = { w: 160, h: 48, radius: 6 };
 
 const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +42,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   const [nodeColor, setNodeColor] = useState('#f4f4f4');
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [showConnectionHelp, setShowConnectionHelp] = useState(false);
   const stageRef = useRef<PIXI.Container | null>(null);
   const contextLostHandlerRef = useRef<((ev: Event) => void) | null>(null);
   const contextRestoredHandlerRef = useRef<((ev: Event) => void) | null>(null);
@@ -762,7 +764,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 
     const text = new PIXI.Text(label || `Node ${nodesRef.current.length + 1}`, {
       fill: textColor,
-      fontSize: 18,
+      fontSize: 14,
       fontWeight: '600'
     });
     text.x = 20;
@@ -817,8 +819,8 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 
   if (initError) {
     return (
-      <div style={{ display: 'flex', height: '80vh', gap: 12 }}>
-        <div style={{ flex: 1, minHeight: 0, borderRadius: 6, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', width: '100%', height: '100%', minWidth: 0 }}>
+        <div style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0, borderRadius: 6, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: '#b00020' }}>
             <h3>Initialisierungsfehler</h3>
             <div style={{ whiteSpace: 'pre-wrap' }}>{initError}</div>
@@ -826,7 +828,7 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
           </div>
         </div>
 
-        <div style={{ width: 300, padding: 12, background: '#fff', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 220, maxWidth: 260, padding: 8, background: '#fff', borderRadius: 8, boxShadow: '0 4px 10px rgba(0,0,0,0.05)', overflowY: 'auto', boxSizing: 'border-box', zIndex: 10 }}>
           <h3 style={{ marginTop: 0 }}>Editor</h3>
           <div style={{ marginTop: 8 }}>Die Editor-Funktionen sind weiterhin verfügbar.</div>
         </div>
@@ -835,228 +837,286 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
   }
 
   return (
-    <div style={{ display: 'flex', height: '80vh', gap: 12 }}>
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0, borderRadius: 6, overflow: 'hidden' }} />
-      <div style={{ width: 300, padding: 12, background: '#fff', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
-        <h3 style={{ marginTop: 0 }}>Editor</h3>
-
-        <div style={{ marginBottom: 8 }}>
-          <button onClick={() => { addNode(); }} style={{ padding: '8px 12px', cursor: 'pointer' }}>
-            Kästchen hinzufügen
-          </button>
+    <div style={{ position: 'relative', width: '100%', height: '100%', minWidth: 0 }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0, borderRadius: 6, overflow: 'hidden' }} />
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 20,
+          width: rightSidebarOpen ? 220 : 38,
+          maxWidth: rightSidebarOpen ? 260 : 38,
+          transition: 'width 180ms ease',
+          padding: rightSidebarOpen ? 7 : 4,
+          background: '#fff',
+          borderRadius: 8,
+          boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: rightSidebarOpen ? 6 : 0 }}>
+          <h3 style={{ marginTop: 0, marginBottom: 0, fontSize: 13, whiteSpace: 'nowrap' }}>{rightSidebarOpen ? 'Editor' : ''}</h3>
           <button
-            onClick={async () => { await loadFromServer(); }}
-            style={{ padding: '8px 12px', marginLeft: 8, cursor: 'pointer' }}
+            onClick={() => setRightSidebarOpen(o => !o)}
+            style={{ padding: '3px 4px', cursor: 'pointer', border: '1px solid #ddd', borderRadius: 4, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            title={rightSidebarOpen ? 'Sidebar einklappen' : 'Sidebar ausklappen'}
           >
-            Laden
-          </button>
-          <button
-            onClick={async () => { await saveToServer(); alert('Gespeichert'); }}
-            style={{ padding: '8px 12px', marginLeft: 8, cursor: 'pointer' }}
-          >
-            Speichern
-          </button>
-          <button
-            onClick={() => {
-              const nodes = nodesRef.current;
-              if (nodes.length >= 2) {
-                addConnection(nodes[0].id, nodes[1].id);
-              } else {
-                alert('Benötige mindestens 2 Nodes für Test');
-              }
-            }}
-            style={{ padding: '6px 8px', marginLeft: 8, cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', fontSize: '10px' }}
-          >
-            Test
+            {rightSidebarOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         </div>
 
-        <div style={{ marginBottom: 8, padding: 8, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-          <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Zoom & Navigation</div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-            <button
-              onClick={zoomIn}
-              style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
-              title="Reinzoomen"
-            >
-              <ZoomIn />
-            </button>
-            <button
-              onClick={zoomOut}
-              style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
-              title="Rauszoomen"
-            >
-              <ZoomOut />
-            </button>
-            <button
-              onClick={resetZoom}
-              style={{ padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}
-              title="Zoom zurücksetzen"
-            >
-              <Focus />
-            </button>
-          </div>
-          <div style={{ fontSize: 10, color: '#666' }}>
-            Zoom: {Math.round(zoomLevel * 100)}%
-          </div>
-          <div style={{ fontSize: 9, color: '#999', marginTop: 2 }}>
-            Mausrad zum Zoomen, Shift+Drag oder mittlere Maustaste zum Verschieben
-          </div>
-        </div>
-
-        <div style={{ borderTop: '1px solid #eee', paddingTop: 12 }}>
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#666' }}>Ausgewählt</label>
-            <div style={{ minHeight: 28 }}>{selectedId ?? <span style={{ color: '#999' }}>Kein Element</span>}</div>
-          </div>
-
-          {connectionMode.active && (
-            <div style={{ marginBottom: 8, padding: 8, backgroundColor: '#e3f2fd', borderRadius: 4 }}>
-              <div style={{ fontSize: 12, color: '#1976d2' }}>
-                Verbindungsmodus aktiv
-              </div>
-              <div style={{ fontSize: 11, color: '#666' }}>
-                Klicken Sie auf einen anderen Node oder ESC zum Abbrechen
-              </div>
+        {rightSidebarOpen && (
+          <>
+            <div style={{ marginBottom: 5 }}>
+              <button onClick={() => { addNode(); }} style={{ padding: '5px 8px', cursor: 'pointer', fontSize: 12 }}>
+                Kästchen hinzufügen
+              </button>
+              <button
+                onClick={async () => { await loadFromServer(); }}
+                style={{ padding: '5px 8px', marginLeft: 6, cursor: 'pointer', fontSize: 12 }}
+              >
+                Laden
+              </button>
+              <button
+                onClick={async () => { await saveToServer(); alert('Gespeichert'); }}
+                style={{ padding: '5px 8px', marginLeft: 6, cursor: 'pointer', fontSize: 12 }}
+              >
+                Speichern
+              </button>
+              <button
+                onClick={() => {
+                  const nodes = nodesRef.current;
+                  if (nodes.length >= 2) {
+                    addConnection(nodes[0].id, nodes[1].id);
+                  } else {
+                    alert('Benötige mindestens 2 Nodes für Test');
+                  }
+                }}
+                style={{ padding: '3px 5px', marginLeft: 6, cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', fontSize: 9 }}
+              >
+                Test
+              </button>
             </div>
-          )}
 
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#666' }}>Label</label>
-            <input
-              value={formText}
-              onChange={e => setFormText(e.target.value)}
-              onBlur={() => { updateSelectedFromForm(); saveToServer().catch(() => {}); }}
-              style={{ width: '100%', padding: 8, boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: 8 }}>
-            <label style={{ display: 'block', fontSize: 12, color: '#666' }}>Farbe</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="color"
-                value={nodeColor}
-                onChange={e => setNodeColor(e.target.value)}
-                onBlur={() => { updateSelectedFromForm(); saveToServer().catch(() => {}); }}
-                style={{ width: 40, height: 32, border: 'none', borderRadius: 4, cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={nodeColor}
-                onChange={e => setNodeColor(e.target.value)}
-                style={{ flex: 1, padding: 8, boxSizing: 'border-box', fontSize: 12 }}
-                placeholder="#f4f4f4"
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <button
-              onClick={() => {
-                updateSelectedFromForm();
-              }}
-              style={{ flex: 1, padding: '8px 12px', cursor: 'pointer' }}
-            >
-              Anwenden
-            </button>
-            <button
-              onClick={() => {
-                deleteSelected();
-              }}
-              style={{ flex: 1, padding: '8px 12px', cursor: 'pointer', background: '#ff6b6b', color: '#fff', border: 'none' }}
-            >
-              Löschen
-            </button>
-          </div>
-
-          <div style={{ borderTop: '1px solid #eee', paddingTop: 8 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Verbindungen</div>
-            <div style={{ fontSize: 11, color: '#999', marginBottom: 8 }}>
-              <div>Anleitung:</div>
-              <div>1. Strg/Cmd + Klick auf ersten Node (wird orange)</div>
-              <div>2. Strg/Cmd + Klick auf zweiten Node</div>
-              <div>3. Oder: Button "Verbindungsmodus" → 2x klicken</div>
-            </div>
-            <button
-              onClick={() => {
-                const newMode = { active: !connectionMode.active };
-                updateConnectionMode(newMode);
-                if (!newMode.active) {
-                  nodesRef.current.forEach(n => n.gfx.cursor = 'grab');
-                  refreshSelectionStyles(selectedId, newMode);
-                }
-
-              }}
-              style={{
-                width: '100%',
-                padding: '6px 12px',
-                cursor: 'pointer',
-                backgroundColor: connectionMode.active ? '#1976d2' : '#f5f5f5',
-                color: connectionMode.active ? '#fff' : '#333',
-                border: '1px solid #ddd',
-                borderRadius: 4
-              }}
-            >
-              {connectionMode.active ? 'Verbindungsmodus beenden' : 'Verbindungsmodus'}
-            </button>
-            
-            <div style={{ marginTop: 8, fontSize: 11, color: '#666' }}>
-              Verbindungen: {connectionsRef.current.length}
-              
-              {/* Button um alle Verbindungen zu löschen */}
-              {connectionsRef.current.length > 0 && (
+            <div style={{ marginBottom: 5, padding: 5, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
+              <div style={{ fontSize: 10, color: '#666', marginBottom: 3 }}>Zoom & Navigation</div>
+              <div style={{ display: 'flex', gap: 3, marginBottom: 3 }}>
                 <button
-                  onClick={() => {
-                    connectionsRef.current = [];
-                    setSelectedConnection(null);
-                    drawLines();
-                    triggerSaveDebounced();
-                  }}
-                  style={{
-                    marginTop: 4,
-                    padding: '4px 8px',
-                    fontSize: 10,
-                    backgroundColor: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 3,
-                    cursor: 'pointer',
-                    display: 'block'
-                  }}
+                  onClick={zoomIn}
+                  style={{ padding: '2px 5px', cursor: 'pointer', fontSize: 10 }}
+                  title="Reinzoomen"
                 >
-                  Alle Verbindungen löschen
+                  <ZoomIn size={14} />
                 </button>
-              )}
-              
-              {selectedConnection && (
-                <div style={{ marginTop: 6, padding: 6, backgroundColor: '#fff3cd', borderRadius: 3, border: '1px solid #ffeaa7' }}>
-                  <div style={{ fontSize: 10, color: '#856404', marginBottom: 4 }}>
-                    Verbindung ausgewählt
+                <button
+                  onClick={zoomOut}
+                  style={{ padding: '2px 5px', cursor: 'pointer', fontSize: 10 }}
+                  title="Rauszoomen"
+                >
+                  <ZoomOut size={14} />
+                </button>
+                <button
+                  onClick={resetZoom}
+                  style={{ padding: '2px 5px', cursor: 'pointer', fontSize: 10 }}
+                  title="Zoom zurücksetzen"
+                >
+                  <Focus size={14} />
+                </button>
+              </div>
+              <div style={{ fontSize: 9, color: '#666' }}>
+                Zoom: {Math.round(zoomLevel * 100)}%
+              </div>
+              <div style={{ fontSize: 8, color: '#999', marginTop: 2 }}>
+                Mausrad zum Zoomen, Shift+Drag oder mittlere Maustaste zum Verschieben
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid #eee', paddingTop: 8 }}>
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 11, color: '#666' }}>Ausgewählt</label>
+                <div style={{ minHeight: 24, fontSize: 11 }}>{selectedId ?? <span style={{ color: '#999' }}>Kein Element</span>}</div>
+              </div>
+
+              {connectionMode.active && (
+                <div style={{ marginBottom: 6, padding: 6, backgroundColor: '#e3f2fd', borderRadius: 4 }}>
+                  <div style={{ fontSize: 11, color: '#1976d2' }}>
+                    Verbindungsmodus aktiv
                   </div>
-                  <div style={{ fontSize: 9, color: '#666', marginBottom: 4 }}>
-                    ID: {selectedConnection.substring(0, 12)}...
+                  <div style={{ fontSize: 10, color: '#666' }}>
+                    Klicken Sie auf einen anderen Node oder ESC zum Abbrechen
                   </div>
-                  <button
-                    onClick={() => deleteConnection(selectedConnection)}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: 10,
-                      backgroundColor: '#dc3545',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 3,
-                      cursor: 'pointer',
-                      width: '100%'
-                    }}
-                  >
-                    Diese Verbindung löschen
-                  </button>
                 </div>
               )}
+
+              <div style={{ marginBottom: 5 }}>
+                <label style={{ display: 'block', fontSize: 11, color: '#666' }}>Label</label>
+                <input
+                  value={formText}
+                  onChange={e => setFormText(e.target.value)}
+                  onBlur={() => { updateSelectedFromForm(); saveToServer().catch(() => {}); }}
+                  style={{ width: '100%', padding: 5, boxSizing: 'border-box', fontSize: 12 }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 11, color: '#666' }}>Farbe</label>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type="color"
+                    value={nodeColor}
+                    onChange={e => setNodeColor(e.target.value)}
+                    onBlur={() => { updateSelectedFromForm(); saveToServer().catch(() => {}); }}
+                    style={{ width: 34, height: 26, border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                  />
+                  <input
+                    type="text"
+                    value={nodeColor}
+                    onChange={e => setNodeColor(e.target.value)}
+                    style={{ flex: 1, padding: 6, boxSizing: 'border-box', fontSize: 11 }}
+                    placeholder="#f4f4f4"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <button
+                  onClick={() => {
+                    updateSelectedFromForm();
+                  }}
+                  style={{ flex: 1, padding: '5px 8px', cursor: 'pointer', fontSize: 12 }}
+                >
+                  Anwenden
+                </button>
+                <button
+                  onClick={() => {
+                    deleteSelected();
+                  }}
+                  style={{ flex: 1, padding: '5px 8px', cursor: 'pointer', background: '#ff6b6b', color: '#fff', border: 'none', fontSize: 12 }}
+                >
+                  Löschen
+                </button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #eee', paddingTop: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ fontSize: 11, color: '#666' }}>Verbindungen</div>
+                  <div
+                    style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                    onMouseEnter={() => setShowConnectionHelp(true)}
+                    onMouseLeave={() => setShowConnectionHelp(false)}
+                  >
+                    <CircleHelp size={14} color="#777" />
+                    {showConnectionHelp && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 18,
+                          width: 205,
+                          padding: 8,
+                          borderRadius: 6,
+                          border: '1px solid #ddd',
+                          background: '#fff',
+                          color: '#666',
+                          fontSize: 10,
+                          lineHeight: 1.4,
+                          boxShadow: '0 4px 8px rgba(0,0,0,0.08)',
+                          zIndex: 4
+                        }}
+                      >
+                        <div>1. Strg/Cmd + Klick auf ersten Node (wird orange)</div>
+                        <div>2. Strg/Cmd + Klick auf zweiten Node</div>
+                        <div>3. Oder: „Verbindungsmodus“ und dann 2 Nodes anklicken</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const newMode = { active: !connectionMode.active };
+                    updateConnectionMode(newMode);
+                    if (!newMode.active) {
+                      nodesRef.current.forEach(n => n.gfx.cursor = 'grab');
+                      refreshSelectionStyles(selectedId, newMode);
+                    }
+
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '5px 8px',
+                    cursor: 'pointer',
+                    backgroundColor: connectionMode.active ? '#1976d2' : '#f5f5f5',
+                    color: connectionMode.active ? '#fff' : '#333',
+                    border: '1px solid #ddd',
+                    borderRadius: 4,
+                    fontSize: 12
+                  }}
+                >
+                  {connectionMode.active ? 'Verbindungsmodus beenden' : 'Verbindungsmodus'}
+                </button>
+
+                <div style={{ marginTop: 6, fontSize: 10, color: '#666' }}>
+                  Verbindungen: {connectionsRef.current.length}
+
+                  {/* Button um alle Verbindungen zu löschen */}
+                  {connectionsRef.current.length > 0 && (
+                    <button
+                      onClick={() => {
+                        connectionsRef.current = [];
+                        setSelectedConnection(null);
+                        drawLines();
+                        triggerSaveDebounced();
+                      }}
+                      style={{
+                        marginTop: 4,
+                        padding: '3px 6px',
+                        fontSize: 9,
+                        backgroundColor: '#6c757d',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                        display: 'block'
+                      }}
+                    >
+                      Alle Verbindungen löschen
+                    </button>
+                  )}
+
+                  {selectedConnection && (
+                    <div style={{ marginTop: 6, padding: 5, backgroundColor: '#fff3cd', borderRadius: 3, border: '1px solid #ffeaa7' }}>
+                      <div style={{ fontSize: 9, color: '#856404', marginBottom: 3 }}>
+                        Verbindung ausgewählt
+                      </div>
+                      <div style={{ fontSize: 8, color: '#666', marginBottom: 4 }}>
+                        ID: {selectedConnection.substring(0, 12)}...
+                      </div>
+                      <button
+                        onClick={() => deleteConnection(selectedConnection)}
+                        style={{
+                          padding: '4px 7px',
+                          fontSize: 9,
+                          backgroundColor: '#dc3545',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 3,
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
+                      >
+                        Diese Verbindung löschen
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1073,7 +1133,7 @@ function createNodeTexture(label: string, fill: number, textColor: number, app: 
 
   const text = new PIXI.Text(label, {
     fill: textColor,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600'
   });
   text.x = 20;

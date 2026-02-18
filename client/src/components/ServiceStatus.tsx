@@ -113,9 +113,12 @@ export default function ServiceStatus() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <strong>Systemstatus</strong>
-        <button onClick={runChecks} disabled={isRunning} style={{ padding: '4px 8px', cursor: 'pointer' }}>
-          {isRunning ? 'checking...' : 'Check'}
+      </div>
+      <div>
+        <button onClick={runChecks} disabled={isRunning} style={{     padding: '2px 4px', cursor: 'pointer' }}>
+        {isRunning ? 'checking...' : 'Check'}
         </button>
+
       </div>
 
       {lastChecked && (
