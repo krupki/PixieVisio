@@ -85,6 +85,7 @@ type docWorker struct {
 	flushInterval time.Duration
 	maxBatch      int
 	input         chan ChangeEvent
+	flushNow      chan struct{}
 	quit          chan struct{}
 	wg            *sync.WaitGroup
 	metrics       *metrics
@@ -97,6 +98,7 @@ func newDocWorker(docID string, flusher Flusher, flushInterval time.Duration, ma
 		flushInterval: flushInterval,
 		maxBatch:      maxBatch,
 		input:         make(chan ChangeEvent, 1024),
+		flushNow:      make(chan struct{}, 1),
 		quit:          make(chan struct{}),
 		wg:            wg,
 		metrics:       m,
@@ -137,6 +139,8 @@ func (w *docWorker) run() {
 			if len(buffer) >= w.maxBatch {
 				flush()
 			}
+		case <-w.flushNow:
+			flush()
 		case <-ticker.C:
 			flush()
 		case <-w.quit:
@@ -150,9 +154,13 @@ func (w *docWorker) enqueue(evt ChangeEvent) {
 	select {
 	case w.input <- evt:
 	default:
-		// Channel backpressure; drop oldest-ish by flushing and retry.
-		log.Printf("backpressure doc=%s; flushing early", w.docID)
-		// Try a non-blocking flush by nudging the ticker path.
+		// Channel is full; signal the worker to flush immediately to make room.
+		log.Printf("backpressure doc=%s; signaling early flush", w.docID)
+		select {
+		case w.flushNow <- struct{}{}:
+		default:
+			// Flush already signalled; a flush is already in flight.
+		}
 		select {
 		case w.input <- evt:
 		case <-time.After(5 * time.Millisecond):
