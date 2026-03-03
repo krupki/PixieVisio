@@ -86,6 +86,7 @@ type docWorker struct {
 	maxBatch      int
 	input         chan ChangeEvent
 	quit          chan struct{}
+	flushNow      chan struct{}
 	wg            *sync.WaitGroup
 	metrics       *metrics
 }
@@ -98,6 +99,7 @@ func newDocWorker(docID string, flusher Flusher, flushInterval time.Duration, ma
 		maxBatch:      maxBatch,
 		input:         make(chan ChangeEvent, 1024),
 		quit:          make(chan struct{}),
+		flushNow:      make(chan struct{}, 1),
 		wg:            wg,
 		metrics:       m,
 	}
@@ -139,6 +141,8 @@ func (w *docWorker) run() {
 			}
 		case <-ticker.C:
 			flush()
+		case <-w.flushNow:
+			flush()
 		case <-w.quit:
 			flush()
 			return
@@ -150,9 +154,12 @@ func (w *docWorker) enqueue(evt ChangeEvent) {
 	select {
 	case w.input <- evt:
 	default:
-		// Channel backpressure; drop oldest-ish by flushing and retry.
-		log.Printf("backpressure doc=%s; flushing early", w.docID)
-		// Try a non-blocking flush by nudging the ticker path.
+		// Channel full; signal the run loop to flush immediately, then retry.
+		log.Printf("backpressure doc=%s; signalling early flush", w.docID)
+		select {
+		case w.flushNow <- struct{}{}:
+		default:
+		}
 		select {
 		case w.input <- evt:
 		case <-time.After(5 * time.Millisecond):
@@ -233,6 +240,9 @@ func loadConfig() Config {
 
 	if v := os.Getenv("ADDR"); v != "" {
 		cfg.Addr = v
+	}
+	if v, ok := os.LookupEnv("BACKEND_URL"); ok {
+		cfg.BackendURL = v
 	}
 	if v := os.Getenv("FLUSH_INTERVAL_MS"); v != "" {
 		if ms, err := strconv.Atoi(v); err == nil && ms > 0 {
