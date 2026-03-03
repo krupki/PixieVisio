@@ -187,7 +187,15 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
 
   useEffect(() => {
     connectRealtime();
+    return () => {
+      if (wsRef.current) {
+        try { wsRef.current.close(); } catch {}
+        wsRef.current = null;
+      }
+    };
+  }, []);
 
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         updateConnectionMode({ active: false });
@@ -199,10 +207,6 @@ const VisioCanvas = forwardRef<VisioHandle>((_, ref) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      if (wsRef.current) {
-        try { wsRef.current.close(); } catch {}
-        wsRef.current = null;
-      }
     };
   }, [selectedId]);
 
