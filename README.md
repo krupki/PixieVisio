@@ -9,7 +9,7 @@ PixieVisio is a collaborative diagram/canvas prototype with a split architecture
 ## Architecture
 
 - `client/` — Vite + React + PixiJS canvas app
-- `server/` — .NET 8 minimal API, EF Core, SQLite storage
+- `server/` — .NET 10 minimal API, EF Core, SQLite storage
 - `realtime-service/` — Go WebSocket service with in-memory batching and metrics endpoint
 
 ## Local development
