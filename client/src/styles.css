@@ -6,8 +6,9 @@ body,
 }
 .app {
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  flex-direction: row;
+  height: 100vh;
+  overflow: hidden;
 }
 .toolbar {
   padding: 8px;

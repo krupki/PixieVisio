@@ -1,6 +1,9 @@
 .idea
 .vscode
-server/bin
+server/bin/
+server/obj/
+**/[Bb]in/
+**/[Oo]bj/
 client/node_modules
 node_modules/
 dist/
@@ -9,3 +12,4 @@ build/
 .env
 .env.local
 .fake
+realtime-service/realtime-service.exe
