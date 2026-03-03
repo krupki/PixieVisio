@@ -49,6 +49,8 @@ jobs:
         with:
           go-version-file: realtime-service/go.mod
       - name: Build
+        working-directory: realtime-service
         run: go build ./...
       - name: Test
+        working-directory: realtime-service
         run: go test ./...
